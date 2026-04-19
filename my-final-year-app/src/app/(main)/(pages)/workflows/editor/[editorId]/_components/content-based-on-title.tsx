@@ -53,20 +53,23 @@ const ContentBasedOnTitle = ({
   const title = selectedNode.data.title
 
   useEffect(() => {
+    if (title !== 'Google Drive') return
     const reqGoogle = async () => {
-      const response: { data: { message: { files: any } } } = await axios.get(
-        '/api/drive'
-      )
-      if (response) {
-        console.log(response.data.message.files[0])
-        toast.message("Fetched File")
-        setFile(response.data.message.files[0])
-      } else {
-        toast.error('Something went wrong')
+      try {
+        const response: { data: { message: { files: any } } } = await axios.get(
+          '/api/drive'
+        )
+        const files = response?.data?.message?.files
+        if (files?.length) {
+          toast.message('Fetched File')
+          setFile(files[0])
+        }
+      } catch {
+        toast.error('Failed to fetch Google Drive files')
       }
     }
     reqGoogle()
-  }, [])
+  }, [title])
 
   // @ts-ignore
   const nodeConnectionType: any = nodeConnection[nodeMapper[title]]

@@ -12,54 +12,37 @@ export const onNotionConnect = async (
   database_id: string,
   id: string
 ) => {
-  'use server'
-  if (access_token) {
-    //check if notion is connected
-    const notion_connected = await db.notion.findFirst({
-      where: {
+  if (!access_token) return
+
+  const notion_connected = await db.notion.findFirst({
+    where: { accessToken: access_token },
+    include: { connections: { select: { type: true } } },
+  })
+
+  if (!notion_connected) {
+    await db.notion.create({
+      data: {
+        userId: id,
+        workspaceIcon: workspace_icon,
         accessToken: access_token,
-      },
-      include: {
+        workspaceId: workspace_id,
+        workspaceName: workspace_name,
+        databaseId: database_id,
         connections: {
-          select: {
-            type: true,
-          },
+          create: { userId: id, type: 'Notion' },
         },
       },
     })
-
-    if (!notion_connected) {
-      //create connection
-      await db.notion.create({
-        data: {
-          userId: id,
-          workspaceIcon: workspace_icon!,
-          accessToken: access_token,
-          workspaceId: workspace_id!,
-          workspaceName: workspace_name!,
-          databaseId: database_id,
-          connections: {
-            create: {
-              userId: id,
-              type: 'Notion',
-            },
-          },
-        },
-      })
-    }
   }
 }
+
 export const getNotionConnection = async () => {
   const user = await currentUser()
   if (user) {
     const connection = await db.notion.findFirst({
-      where: {
-        userId: user.id,
-      },
+      where: { userId: user.id },
     })
-    if (connection) {
-      return connection
-    }
+    if (connection) return connection
   }
 }
 
@@ -67,11 +50,8 @@ export const getNotionDatabase = async (
   databaseId: string,
   accessToken: string
 ) => {
-  const notion = new Client({
-    auth: accessToken,
-  })
-  const response = await notion.databases.retrieve({ database_id: databaseId })
-  return response
+  const notion = new Client({ auth: accessToken })
+  return await notion.databases.retrieve({ database_id: databaseId })
 }
 
 export const onCreateNewPageInDatabase = async (
@@ -79,27 +59,24 @@ export const onCreateNewPageInDatabase = async (
   accessToken: string,
   content: string
 ) => {
-  const notion = new Client({
-    auth: accessToken,
-  })
+  const notion = new Client({ auth: accessToken })
 
-  console.log(databaseId)
   const response = await notion.pages.create({
     parent: {
       type: 'database_id',
       database_id: databaseId,
     },
     properties: {
-      name: [
-        {
-          text: {
-            content: content,
+      // Notion requires the title property — use "Name" as the default title key
+      Name: {
+        title: [
+          {
+            text: { content: typeof content === 'string' ? content : JSON.stringify(content) },
           },
-        },
-      ],
+        ],
+      },
     },
   })
-  if (response) {
-    return response
-  }
+
+  return response
 }

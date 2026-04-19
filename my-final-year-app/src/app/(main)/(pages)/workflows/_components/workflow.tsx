@@ -1,3 +1,4 @@
+'use client'
 import React from 'react'
 import {
   Card,
@@ -20,11 +21,8 @@ type Props = {
 }
 
 const Workflow = ({ description, id, name, publish }: Props) => {
-  const onPublishFlow = async (event: any) => {
-    const response = await onFlowPublish(
-      id,
-      event.target.ariaChecked === 'false'
-    )
+  const onPublishFlow = async (checked: boolean) => {
+    const response = await onFlowPublish(id, checked)
     if (response) toast.message(response)
   }
 
@@ -42,20 +40,20 @@ const Workflow = ({ description, id, name, publish }: Props) => {
             />
             <Image
               src="/notion.png"
-              alt="Google Drive"
+              alt="Notion"
               height={30}
               width={30}
               className="object-contain"
             />
             <Image
               src="/discord.png"
-              alt="Google Drive"
+              alt="Discord"
               height={30}
               width={30}
               className="object-contain"
             />
           </div>
-          <div className="">
+          <div>
             <CardTitle className="text-lg">{name}</CardTitle>
             <CardDescription>{description}</CardDescription>
           </div>
@@ -63,15 +61,15 @@ const Workflow = ({ description, id, name, publish }: Props) => {
       </CardHeader>
       <div className="flex flex-col items-center gap-2 p-4">
         <Label
-          htmlFor="airplane-mode"
+          htmlFor={`publish-${id}`}
           className="text-muted-foreground"
         >
-          {publish! ? 'On' : 'Off'}
+          {publish ? 'On' : 'Off'}
         </Label>
         <Switch
-          id="airplane-mode"
-          // onClick={onPublishFlow}
-          defaultChecked={publish!}
+          id={`publish-${id}`}
+          defaultChecked={publish ?? false}
+          onCheckedChange={onPublishFlow}
         />
       </div>
     </Card>

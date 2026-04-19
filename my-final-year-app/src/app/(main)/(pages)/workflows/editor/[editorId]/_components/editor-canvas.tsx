@@ -207,7 +207,7 @@ const EditorCanvas = (props: Props) => {
               </div>
             ) : (
               <ReactFlow
-                className="w-[300px]"
+                className="w-full h-full"
                 onDrop={onDrop}
                 onDragOver={onDragOver}
                 nodes={state.editor.elements}
