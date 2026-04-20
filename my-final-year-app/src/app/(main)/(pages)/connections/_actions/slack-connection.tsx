@@ -44,9 +44,7 @@ export const onSlackConnect = async (
 export const getSlackConnection = async () => {
   const user = await currentUser()
   if (user) {
-    return await db.slack.findFirst({
-      where: { userId: user.id },
-    })
+    return await db.slack.findFirst({ where: { userId: user.id } })
   }
   return null
 }
@@ -64,17 +62,12 @@ export async function listBotChannels(
       headers: { Authorization: `Bearer ${slackAccessToken}` },
     })
 
-    console.log(data)
-
     if (!data.ok) throw new Error(data.error)
-
     if (!data?.channels?.length) return []
 
     return data.channels
       .filter((ch: any) => ch.is_member)
-      .map((ch: any) => {
-        return { label: ch.name, value: ch.id }
-      })
+      .map((ch: any) => ({ label: ch.name, value: ch.id }))
   } catch (error: any) {
     console.error('Error listing bot channels:', error.message)
     throw error
@@ -86,27 +79,18 @@ const postMessageInSlackChannel = async (
   slackChannel: string,
   content: string
 ): Promise<void> => {
-  try {
-    await axios.post(
-      'https://slack.com/api/chat.postMessage',
-      { channel: slackChannel, text: content },
-      {
-        headers: {
-          Authorization: `Bearer ${slackAccessToken}`,
-          'Content-Type': 'application/json;charset=utf-8',
-        },
-      }
-    )
-    console.log(`Message posted successfully to channel ID: ${slackChannel}`)
-  } catch (error: any) {
-    console.error(
-      `Error posting message to Slack channel ${slackChannel}:`,
-      error?.response?.data || error.message
-    )
-  }
+  await axios.post(
+    'https://slack.com/api/chat.postMessage',
+    { channel: slackChannel, text: content },
+    {
+      headers: {
+        Authorization: `Bearer ${slackAccessToken}`,
+        'Content-Type': 'application/json;charset=utf-8',
+      },
+    }
+  )
 }
 
-// Wrapper function to post messages to multiple Slack channels
 export const postMessageToSlack = async (
   slackAccessToken: string,
   selectedSlackChannels: Option[],
@@ -116,14 +100,17 @@ export const postMessageToSlack = async (
   if (!selectedSlackChannels?.length) return { message: 'Channel not selected' }
 
   try {
-    selectedSlackChannels
-      .map((channel) => channel?.value)
-      .forEach((channel) => {
-        postMessageInSlackChannel(slackAccessToken, channel, content)
-      })
-  } catch (error) {
+    await Promise.all(
+      selectedSlackChannels
+        .map((channel) => channel.value)
+        .filter(Boolean)
+        .map((channel) =>
+          postMessageInSlackChannel(slackAccessToken, channel, content)
+        )
+    )
+    return { message: 'Success' }
+  } catch (error: any) {
+    console.error('Error posting to Slack:', error?.response?.data ?? error.message)
     return { message: 'Message could not be sent to Slack' }
   }
-
-  return { message: 'Success' }
 }
